@@ -19,6 +19,10 @@ namespace Platformer.Mechanics
         public AudioClip respawnAudio;
         public AudioClip ouchAudio;
 
+        public GameObject ballPrefab;
+        public Transform ballSpawnPosition;
+        private bool canShoot = true;
+
         /// <summary>
         /// Max horizontal speed of the player.
         /// </summary>
@@ -66,19 +70,20 @@ namespace Platformer.Mechanics
             if (controlEnabled)
             {
                 move.x = m_MoveAction.ReadValue<Vector2>().x;
-                if (jumpState == JumpState.Grounded && m_JumpAction.WasPressedThisFrame())
-                    jumpState = JumpState.PrepareToJump;
-                else if (m_JumpAction.WasReleasedThisFrame())
+                if (m_JumpAction.WasPressedThisFrame() && !spriteRenderer.flipX && canShoot)
                 {
-                    stopJump = true;
-                    Schedule<PlayerStopJump>().player = this;
+                    canShoot = false;
+                    Invoke("enableShoot", 1.0f);
+                    GameObject ball = GameObject.Instantiate(ballPrefab);
+                    ball.transform.position = gameObject.transform.position;
+                    Rigidbody2D rb = ball.GetComponent<Rigidbody2D>();
+                    rb.AddForce(new Vector3(3.0f + Random.Range(0.0f, 1.0f), 8.0f + Random.Range(0.0f, 1.0f), 0.0f), ForceMode2D.Impulse);
                 }
             }
             else
             {
                 move.x = 0;
             }
-            UpdateJumpState();
             base.Update();
         }
 
@@ -137,6 +142,11 @@ namespace Platformer.Mechanics
             animator.SetFloat("velocityX", Mathf.Abs(velocity.x) / maxSpeed);
 
             targetVelocity = move * maxSpeed;
+        }
+
+        private void enableShoot ()
+        {
+            canShoot = true;
         }
 
         public enum JumpState
